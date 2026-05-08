@@ -46,7 +46,7 @@ function IngredientClass:Setup()
 	alignOrientation.Attachment1 = self.TargetAttachment
 	alignOrientation.MaxTorque = Config.MaxTorque
 	alignOrientation.Responsiveness = Config.Responsiveness
-	alignPosition.Parent = self.Part
+	alignOrientation.Parent = self.Part
 	
 	if Config.HighlightItem then
 		local highlight = Instance.new("Highlight")
