@@ -1,7 +1,7 @@
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local DropIngredient: RemoteEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DropIngredient")
+local DropItem: RemoteEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DropItem")
 local player = game.Players.LocalPlayer
 local mouse = player:GetMouse()
 
@@ -13,7 +13,7 @@ RunService.RenderStepped:Connect(function()
 
 	local rootPos = character.HumanoidRootPart.Position
 
-	for _, v in workspace.Ingredients:GetChildren() do
+	for _, v in workspace.DraggableItems:GetChildren() do
 		if v:IsA("BasePart") and v:GetAttribute("CurrentPlayer") == player.Name then
 			local targetAttachment = workspace.Terrain:FindFirstChild("TargetAttachment_" .. v.Name)
 
@@ -25,7 +25,8 @@ RunService.RenderStepped:Connect(function()
 					targetPos = rootPos + (direction.Unit * MAX_DISTANCE)
 				end
 
-				targetAttachment.WorldPosition = targetPos + Vector3.new(0, 2, 0)
+				local finalPos = targetPos + Vector3.new(0, 2, 0)
+				targetAttachment.CFrame = CFrame.new(finalPos, rootPos)
 			end
 		end
 	end
@@ -33,19 +34,19 @@ end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
-	
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		local ownsIngredient = false
 
-		for _, v in workspace.Ingredients:GetChildren() do
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		local ownsItem = false
+
+		for _, v in workspace.DraggableItems:GetChildren() do
 			if v:GetAttribute("CurrentPlayer") == player.Name then
-				ownsIngredient = true
+				ownsItem = true
 				break
 			end
 		end
 
-		if ownsIngredient then
-			DropIngredient:FireServer()
+		if ownsItem then
+			DropItem:FireServer()
 		end
 	end
 end)
