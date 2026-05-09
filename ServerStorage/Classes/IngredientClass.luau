@@ -1,3 +1,6 @@
+local ServerStorage = game:GetService("ServerStorage")
+local API = require(ServerStorage.API)
+local API_Config = API:GetConfig()
 local player, mouse
 local Config = {
 	["HighlightItem"] = true, -- highlight the item?
@@ -7,6 +10,13 @@ local Config = {
 	["MaxForce"] = 1000, 
 	["MaxTorque"] = 1000000, 
 	["Responsiveness"] = 100, 
+
+	["Interactable"] = true, -- can the crate be interacted with?
+	["MaxInteractDistance"] = 10, -- max distance you can interact with the utensil
+
+	["BillboardGui"] = true, -- show the billboard gui?
+
+	["Folder"] = nil, -- folder of the tool, set to nil if you want to use the actual part in the workspace
 }
 
 local IngredientClass = {}
@@ -16,6 +26,7 @@ function IngredientClass.new(part)
 	local self = setmetatable({}, IngredientClass)
 
 	self.Part = part
+	self.Highlight, self.ClickDetector, self.BillboardGui = nil, nil, nil
 	
 	self.TargetAttachment = Instance.new("Attachment")
 	self:Setup()
@@ -49,12 +60,72 @@ function IngredientClass:Setup()
 	alignOrientation.Responsiveness = Config.Responsiveness
 	alignOrientation.Parent = self.Part
 
+	local highlight, clickDetector, billboard
+
 	if Config.HighlightItem then
-		local highlight = Instance.new("Highlight")
-		highlight.Enabled = true
+		highlight = Instance.new("Highlight")
+		highlight.Enabled = false
 		highlight.FillTransparency = Config.HighlightTransparency
 		highlight.FillColor = Config.HighlightColor
 		highlight.Parent = self.Part
+	end
+
+	if Config.Interactable then
+		clickDetector = Instance.new("ClickDetector")
+		clickDetector.MaxActivationDistance = Config.MaxInteractDistance
+		clickDetector.Parent = self.Part
+	end
+
+	if Config.BillboardGui then
+		billboard = Instance.new("BillboardGui")
+		billboard.Enabled = false
+		billboard.Parent = self.Part
+		billboard.Size = UDim2.new(0, 100, 0, 50)
+		billboard.StudsOffset = Vector3.new(-4, 0, 0)
+		local frame = Instance.new("Frame")
+		frame.Parent = billboard
+		frame.Size = UDim2.new(1, 0, 1, 0)
+		local textLabel = Instance.new("TextLabel")
+		textLabel.Parent = frame
+		textLabel.Size = UDim2.new(1, 0, 1, 0)
+		textLabel.Text = self.Part.Name
+	end
+
+	self.Highlight = highlight
+	self.ClickDetector = clickDetector
+	self.BillboardGui = billboard
+end
+
+function IngredientClass:Init()
+	local highlight: Highlight = self.Highlight
+	local clickDetector: ClickDetector = self.ClickDetector
+	local billboard: BillboardGui = self.BillboardGui
+
+	if clickDetector then
+		clickDetector.MouseClick:Connect(function(player)
+			if #API:GetOwnedParts(player) >= API_Config.MaxIngredientsPerPlayer then return end
+			self.Part.Parent = workspace.DraggableItems
+			local utensil = IngredientClass.new(self.Part, self.Type)
+			utensil:SetOwner(player)
+		end)
+
+		clickDetector.MouseHoverEnter:Connect(function()
+			if highlight then
+				highlight.Enabled = true
+			end
+			if billboard then
+				billboard.Enabled = true
+			end
+		end)
+
+		clickDetector.MouseHoverLeave:Connect(function()
+			if highlight then
+				highlight.Enabled = false
+			end
+			if billboard then
+				billboard.Enabled = false
+			end
+		end)
 	end
 end
 
