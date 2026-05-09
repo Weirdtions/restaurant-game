@@ -6,8 +6,8 @@ local Config = {
 	["HighlightColor"] = Color3.fromRGB(255, 255, 255), -- color of the highlight
 	["HighlightTransparency"] = 1, -- transparency of the highlight
 
-	["MaxForce"] = 100000,
-	["MaxTorque"] = 1000000,
+	["MaxForce"] = 1000, 
+	["MaxTorque"] = 1000000, 
 	["Responsiveness"] = 100,
 
 	["Interactable"] = true, -- can the crate be interacted with?
