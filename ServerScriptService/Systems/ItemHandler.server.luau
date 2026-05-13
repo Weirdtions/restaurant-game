@@ -1,70 +1,51 @@
 local ServerStorage = game:GetService("ServerStorage")
 local CrateClass = require(ServerStorage.Classes.CrateClass)
-local IngredientClass = require(ServerStorage.Classes.IngredientClass)
 local UtensilClass = require(ServerStorage.Classes.UtensilClass)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local DropItem = ReplicatedStorage.Remotes.DropItem
+local UseItem = ReplicatedStorage.Remotes.UseItem
 local CollectionService = game:GetService("CollectionService")
-local TAGS = {
-	{ tag = "Crate", class = CrateClass },
-	{ tag = "Ingredient", class = IngredientClass },
-	{ tag = "Utensil", class = UtensilClass },
+local Identifiers = {
+	{tag = "Crate", class = CrateClass},
+	{tag = "Utensil", class = UtensilClass},
 }
 
-for _, tag in TAGS do
-	for _, part in CollectionService:GetTagged(tag.tag) do
-		local class = tag.class
-		local v
-		
-		if tag == "Utensil" then
-			v = class.new(part, part.Name)
-		else
-			v = class.new(part)
-		end
-		
-		if v then
-			v:Init()
-		end
-	end
-end
-
-local function onInstanceAdded(part)
-	for _, tag in TAGS do
-		if part:HasTag(tag.tag) then
-			local class = tag.class
-			local v
-			
-			v = class.new(part)
-			v:Init()
+for _, identifier in Identifiers do
+	for _, part in CollectionService:GetTagged(identifier.tag) do
+		local class = identifier.class
+		local instance = class.new(part)
+		instance:Init()
+		if CollectionService:HasTag(part, "Usable") then
+			UseItem.OnServerEvent:Connect(function(player, item, isUsing)
+				if item ~= part then return end
+				if isUsing then
+					instance:StopUsing()
+				else
+					instance:StartUsing()
+				end
+			end)
 		end
 	end
 end
 
-CollectionService:GetInstanceAddedSignal("Ingredient"):Connect(onInstanceAdded)
-
-DropItem.OnServerEvent:Connect(function(player)
-	for _, v in workspace.DraggableItems:GetChildren() do
-		if v:IsA("BasePart") and v:GetAttribute("CurrentPlayer") == player.Name then
-			v.Parent = workspace
-			v:SetNetworkOwner(nil)
-			v:SetAttribute("CurrentPlayer", "")
-
-			local alignPosition = v:FindFirstChildOfClass("AlignPosition")
-			local alignOrientation = v:FindFirstChildOfClass("AlignOrientation")
-
-			if alignPosition then alignPosition.Enabled = false end
-			if alignOrientation then alignOrientation.Enabled = false end
-
-			local targetAttachment = workspace.Terrain:FindFirstChild("TargetAttachment_" .. v.Name)
-			if targetAttachment then
-				targetAttachment:Destroy()
-			end
-
-			local highlight = v:FindFirstChildOfClass("Highlight")
-			if highlight then
-				highlight.Enabled = false
-			end
-			break
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local DropItem = ReplicatedStorage.Remotes.DropItem
+local function findItemByGuid(guid: string): BasePart?
+	for _, item in ipairs(workspace.Items:GetChildren()) do
+		if item:IsA("BasePart") and item:GetAttribute("Guid") == guid then
+			return item
 		end
 	end
+	return nil
+end
+
+DropItem.OnServerEvent:Connect(function(player, item)
+	local guid = player:GetAttribute("CarryingItem")
+	if not guid then return end
+	if item ~= findItemByGuid(guid) then return end
+	
+	player:SetAttribute("CarryingItem", nil)
+	item:SetNetworkOwner(nil)
+	item.FollowForce.Enabled = false
+	item.RotationForce.Enabled = false
+	item.Parent = workspace
 end)
