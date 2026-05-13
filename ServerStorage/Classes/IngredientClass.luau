@@ -17,9 +17,9 @@ local Config = {
 	["MaxInteractDistance"] = 10, -- max distance you can interact with the crate
 
 	["BillboardGui"] = true, -- show the billboard gui?
-	
+
 	["ChoppedFolder"] = ReplicatedStorage.Assets.Chopped, -- folder of the chopped items
-	
+
 	["ChopCount"] = { -- how many parts an ingredient is split when chopped
 		["Default"] = 3,
 		["Tomato"] = 3,
@@ -35,12 +35,11 @@ function IngredientClass.new(part)
 	self.Part = part
 	self.Highlight, self.ClickDetector, self.BillboardGui = self:ApplyConfig()
 	self.Chopped = false
-	
+
 	self.TargetAttachment = Instance.new("Attachment")
 	self:Setup()
 	self:Init()
-
-	ChopIngredient.Event:Connect(function(part)
+	self._connection = ChopIngredient.Event:Connect(function(part)
 		if self.Chopped then return end
 		if part ~= self.Part then return end
 		self:OnChopped(part)
@@ -112,16 +111,12 @@ end
 
 function IngredientClass:Init()
 	local clickDetector, billboard, highlight = self.ClickDetector, self.BillboardGui, self.Highlight
-	
+
 	if clickDetector then
 		clickDetector.MouseClick:Connect(function(player)
 			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then return end
-			API.cleanChildren(self.Part)
-			local v: BasePart = self.Part:Clone()
-			v.Parent = workspace.Items
-			local ingredient = IngredientClass.new(v)
-			ingredient:SetOwner(player)
-			self:Destroy()
+			self.Part.Parent = workspace.Items
+			self:SetOwner(player)
 		end)
 
 		clickDetector.MouseHoverEnter:Connect(function()
@@ -157,21 +152,28 @@ function IngredientClass:SetOwner(player)
 end
 
 function IngredientClass:Destroy()
-	self.Part:Destroy()
-	self = nil
+	if self._connection then
+		self._connection:Disconnect()
+		self._connection = nil
+	end
+
+	if self.Part then
+		self.Part:Destroy()
+	end
 end
 
 function IngredientClass:OnChopped(part)
 	if self.Chopped then return end
-	
+
 	if part == self.Part then
 		local originalPosition = self.Part.Position
 		for i=1, (Config.ChopCount[part.Name] or Config.ChopCount.Default) do
 			SpawnItem:Fire(part.Name, originalPosition, Config.ChoppedFolder)
 		end
+		self:Destroy()
 		return
 	end
-	
+
 	self:Destroy()
 end
 
