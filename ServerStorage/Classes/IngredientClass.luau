@@ -1,7 +1,9 @@
 local ServerStorage = game:GetService("ServerStorage")
 local API = require(ServerStorage.API)
-local API_Config = API:GetConfig()
-local player, mouse
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ChopIngredient: BindableEvent = ReplicatedStorage.Bindables.ChopIngredient
+local SpawnItem: BindableEvent = ReplicatedStorage.Bindables.SpawnItem
+local Settings = API:GetSettings()
 local Config = {
 	["HighlightItem"] = true, -- highlight the item?
 	["HighlightColor"] = Color3.fromRGB(255, 255, 255), -- color of the highlight
@@ -12,11 +14,16 @@ local Config = {
 	["Responsiveness"] = 100, 
 
 	["Interactable"] = true, -- can the crate be interacted with?
-	["MaxInteractDistance"] = 10, -- max distance you can interact with the utensil
+	["MaxInteractDistance"] = 10, -- max distance you can interact with the crate
 
 	["BillboardGui"] = true, -- show the billboard gui?
-
-	["Folder"] = nil, -- folder of the tool, set to nil if you want to use the actual part in the workspace
+	
+	["ChoppedFolder"] = ReplicatedStorage.Assets.Chopped, -- folder of the chopped items
+	
+	["ChopCount"] = { -- how many parts an ingredient is split when chopped
+		["Default"] = 3,
+		["Tomato"] = 3,
+	}
 }
 
 local IngredientClass = {}
@@ -26,45 +33,54 @@ function IngredientClass.new(part)
 	local self = setmetatable({}, IngredientClass)
 
 	self.Part = part
-	self.Highlight, self.ClickDetector, self.BillboardGui = nil, nil, nil
+	self.Highlight, self.ClickDetector, self.BillboardGui = self:ApplyConfig()
+	self.Chopped = false
 	
 	self.TargetAttachment = Instance.new("Attachment")
 	self:Setup()
+	self:Init()
+
+	ChopIngredient.Event:Connect(function(part)
+		if self.Chopped then return end
+		if part ~= self.Part then return end
+		self:OnChopped(part)
+	end)
 
 	return self
 end
 
 function IngredientClass:Setup()
-	self.Part.CanCollide = true
-	self.Part.Anchored = false
-
-	local attachment0 = Instance.new("Attachment")
-	attachment0.Parent = self.Part
-
-	self.TargetAttachment.Parent = self.Part
-	self.TargetAttachment.Name = "TargetAttachment_" .. self.Part.Name
-	self.TargetAttachment.Parent = workspace.Terrain
+	local attachment = Instance.new("Attachment")
+	attachment.Name = "CenterAttachment"
+	attachment.Parent = self.Part
 
 	local alignPosition = Instance.new("AlignPosition")
-	alignPosition.Attachment0 = attachment0
-	alignPosition.Attachment1 = self.TargetAttachment
+	alignPosition.Name = "FollowForce"
+	alignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
+	alignPosition.Attachment0 = attachment
+	alignPosition.Position = self.Part.Position 
 	alignPosition.MaxForce = Config.MaxForce
 	alignPosition.Responsiveness = Config.Responsiveness
-	alignPosition.Mode = Enum.PositionAlignmentMode.TwoAttachment
+	alignPosition.Enabled = false
 	alignPosition.Parent = self.Part
 
 	local alignOrientation = Instance.new("AlignOrientation")
-	alignOrientation.Attachment0 = attachment0
-	alignOrientation.Attachment1 = self.TargetAttachment
+	alignOrientation.Name = "RotationForce"
+	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	alignOrientation.Attachment0 = attachment
+	alignOrientation.CFrame = self.Part.CFrame 
 	alignOrientation.MaxTorque = Config.MaxTorque
 	alignOrientation.Responsiveness = Config.Responsiveness
+	alignOrientation.Enabled = false
 	alignOrientation.Parent = self.Part
+end
 
+function IngredientClass:ApplyConfig()
 	local highlight, clickDetector, billboard
 
 	if Config.HighlightItem then
 		highlight = Instance.new("Highlight")
-		highlight.Enabled = false
+		highlight.Enabled = true
 		highlight.FillTransparency = Config.HighlightTransparency
 		highlight.FillColor = Config.HighlightColor
 		highlight.Parent = self.Part
@@ -91,22 +107,21 @@ function IngredientClass:Setup()
 		textLabel.Text = self.Part.Name
 	end
 
-	self.Highlight = highlight
-	self.ClickDetector = clickDetector
-	self.BillboardGui = billboard
+	return highlight, clickDetector, billboard
 end
 
 function IngredientClass:Init()
-	local highlight: Highlight = self.Highlight
-	local clickDetector: ClickDetector = self.ClickDetector
-	local billboard: BillboardGui = self.BillboardGui
-
+	local clickDetector, billboard, highlight = self.ClickDetector, self.BillboardGui, self.Highlight
+	
 	if clickDetector then
 		clickDetector.MouseClick:Connect(function(player)
-			if #API:GetOwnedParts(player) >= API_Config.MaxIngredientsPerPlayer then return end
-			self.Part.Parent = workspace.DraggableItems
-			local utensil = IngredientClass.new(self.Part, self.Type)
-			utensil:SetOwner(player)
+			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then return end
+			API.cleanChildren(self.Part)
+			local v: BasePart = self.Part:Clone()
+			v.Parent = workspace.Items
+			local ingredient = IngredientClass.new(v)
+			ingredient:SetOwner(player)
+			self:Destroy()
 		end)
 
 		clickDetector.MouseHoverEnter:Connect(function()
@@ -130,14 +145,34 @@ function IngredientClass:Init()
 end
 
 function IngredientClass:SetOwner(player)
+	if not self.Part:GetAttribute("Guid") then
+		self.Part:SetAttribute("Guid", game:GetService("HttpService"):GenerateGUID(false))
+	end
+
 	self.Part:SetNetworkOwner(player)
-	self.Part:SetAttribute("TargetAttachment", self.TargetAttachment.Name)
-	self.Part:SetAttribute("CurrentPlayer", player.Name)
+	player:SetAttribute("CarryingItem", self.Part:GetAttribute("Guid"))
+
+	self.Part.FollowForce.Enabled = true
+	self.Part.RotationForce.Enabled = true
 end
 
-function IngredientClass:GiveUpOwner()
-	self.Part:SetNetworkOwner(nil)
-	self.Part:SetAttribute("CurrentPlayer", "")
+function IngredientClass:Destroy()
+	self.Part:Destroy()
+	self = nil
+end
+
+function IngredientClass:OnChopped(part)
+	if self.Chopped then return end
+	
+	if part == self.Part then
+		local originalPosition = self.Part.Position
+		for i=1, (Config.ChopCount[part.Name] or Config.ChopCount.Default) do
+			SpawnItem:Fire(part.Name, originalPosition, Config.ChoppedFolder)
+		end
+		return
+	end
+	
+	self:Destroy()
 end
 
 return IngredientClass
