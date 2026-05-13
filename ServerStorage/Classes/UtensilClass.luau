@@ -9,7 +9,7 @@ local API = require(ServerStorage.API)
 local Settings = API:GetSettings()
 local Config = {
 	["IgnoreCollision"] = {workspace.Characters, workspace.Items},
-	
+
 	["HighlightItem"] = true, -- highlight the item?
 	["HighlightColor"] = Color3.fromRGB(255, 255, 255), -- color of the highlight
 	["HighlightTransparency"] = 1, -- transparency of the highlight
@@ -37,7 +37,7 @@ function UtensilClass.new(part)
 		Billboard = nil,
 		Label = nil,
 	}
-	
+
 	self.IsUsing = false
 	self._Connection = nil
 
@@ -111,40 +111,40 @@ end
 
 function UtensilClass:Init()
 	local highlight: Highlight, clickDetector: ClickDetector, billboard: BillboardGui = self.Instances.Highlight, self.Instances.ClickDetector, self.Instances.BillboardGui
-	
+
 	if clickDetector then
-		
+
 		clickDetector.MouseClick:Connect(function(player)
 			local character = player.Character
 			if not character or (character.PrimaryPart.Position - self.Part.Position).Magnitude > Config.MaxInteractDistance + 2 then return end
 			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then return end
-			
+
 			self.Part.Parent = workspace.Items
 			self:SetOwner(player)
 		end)
 
 		clickDetector.MouseHoverEnter:Connect(function()
-			
+
 			if highlight then
 				highlight.Enabled = true
 			end
 			if billboard then
 				billboard.Enabled = true
 			end
-			
+
 		end)
 
 		clickDetector.MouseHoverLeave:Connect(function()
-			
+
 			if highlight then
 				highlight.Enabled = false
 			end
 			if billboard then
 				billboard.Enabled = false
 			end
-			
+
 		end)
-		
+
 	end
 end
 
@@ -166,15 +166,18 @@ function UtensilClass:StartUsing()
 	self.IsUsing = true
 
 	self._Connection = RunService.Heartbeat:Connect(function(dt)
-		if not self.IsUsing then return end
+		if not self.IsUsing then 
+			self:StopUsing()
+			return 
+		end
 
 		local collidingParts = CollisionService.getCollidingParts(self.Part, Config.IgnoreCollision)
 
 		for _, part in collidingParts do
 			if CollectionService:HasTag(part, "Ingredient") then
+				self.IsUsing = false 
 				ChopIngredient:Fire(part)
-				self.IsUsing = false
-				self:StopUsing()
+				self:StopUsing() 
 				break
 			end
 		end
