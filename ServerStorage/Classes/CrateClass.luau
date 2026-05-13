@@ -4,7 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local API = require(ServerStorage.API)
 local Settings = API:GetSettings()
 local Config = {
-	["MaxStock"] = 25, -- max stock of the crate
+	["MaxStock"] = 10, -- max stock of the crate
 
 	["HighlightItem"] = true, -- highlight the item?
 	["HighlightColor"] = Color3.fromRGB(255, 255, 255), -- color of the highlight
@@ -35,7 +35,7 @@ function CrateClass.new(part)
 		Label = nil,
 		StockLabel = nil,
 	}
-	
+
 	self:ApplyConfig()
 
 	return self
@@ -74,7 +74,7 @@ function CrateClass:ApplyConfig()
 		self.Instances.BillboardGui = billboard
 		self.Instances.Label = textLabel
 	end
-	
+
 	if Config.StockLabel then
 		local stockLabel = self.Part:FindFirstChild("SurfaceGui"):FindFirstChild("TextLabel")
 		stockLabel.Text = tostring(self.CurrentStock)
@@ -106,16 +106,16 @@ function CrateClass:Init()
 
 	if clickDetector then
 		clickDetector.MouseClick:Connect(function(player)
-			
+
 			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then return end
 			if self.CurrentStock <= 0 then return end
-			
+
 			local v: BasePart = getIngredient(self.Part.Name):Clone()
 			self:AddStock(-1)
 			v.Parent = workspace.Items
 			local ingredient = IngredientClass.new(v)
 			ingredient:SetOwner(player)
-			
+
 		end)
 
 		clickDetector.MouseHoverEnter:Connect(function()
