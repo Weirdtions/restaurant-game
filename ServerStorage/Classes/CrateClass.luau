@@ -1,10 +1,10 @@
 local ServerStorage = game:GetService("ServerStorage")
-local API = require(ServerStorage.API)
-local API_Config = API:GetConfig()
 local IngredientClass = require(ServerStorage.Classes.IngredientClass)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local API = require(ServerStorage.API)
+local Settings = API:GetSettings()
 local Config = {
 	["MaxStock"] = 25, -- max stock of the crate
-	["MaxIngredientsPerPlayer"] = 1, -- max ingredients you can select
 
 	["HighlightItem"] = true, -- highlight the item?
 	["HighlightColor"] = Color3.fromRGB(255, 255, 255), -- color of the highlight
@@ -14,8 +14,9 @@ local Config = {
 	["MaxInteractDistance"] = 10, -- max distance you can interact with the crate
 
 	["BillboardGui"] = true, -- show the billboard gui?
+	["StockLabel"] = true, -- show the stock label?
 
-	["Folder"] = ServerStorage.Ingredients, -- folder of the items in the crate
+	["Folder"] = ReplicatedStorage.Assets.Ingredients, -- folder of the items in the crate
 }
 
 local CrateClass = {}
@@ -26,30 +27,39 @@ function CrateClass.new(part)
 
 	self.Part = part
 	self.MaxStock = Config.MaxStock
-	self.Highlight, self.ClickDetector, self.BillboardGui = self:ApplyConfig()
+	self.CurrentStock = Config.MaxStock
+	self.Instances = {
+		Highlight = nil,
+		ClickDetector = nil,
+		Billboard = nil,
+		Label = nil,
+		StockLabel = nil,
+	}
+	
+	self:ApplyConfig()
 
 	return self
 end
 
 function CrateClass:ApplyConfig()
-	local highlight, clickDetector, billboard
-
 	if Config.HighlightItem then
-		highlight = Instance.new("Highlight")
+		local highlight = Instance.new("Highlight")
 		highlight.Enabled = false
 		highlight.FillTransparency = Config.HighlightTransparency
 		highlight.FillColor = Config.HighlightColor
 		highlight.Parent = self.Part
+		self.Instances.Highlight = highlight
 	end
 
 	if Config.Interactable then
-		clickDetector = Instance.new("ClickDetector")
+		local clickDetector = Instance.new("ClickDetector")
 		clickDetector.MaxActivationDistance = Config.MaxInteractDistance
 		clickDetector.Parent = self.Part
+		self.Instances.ClickDetector = clickDetector
 	end
 
 	if Config.BillboardGui then
-		billboard = Instance.new("BillboardGui")
+		local billboard = Instance.new("BillboardGui")
 		billboard.Enabled = false
 		billboard.Parent = self.Part
 		billboard.Size = UDim2.new(0, 100, 0, 50)
@@ -61,9 +71,15 @@ function CrateClass:ApplyConfig()
 		textLabel.Parent = frame
 		textLabel.Size = UDim2.new(1, 0, 1, 0)
 		textLabel.Text = self.Part.Name
+		self.Instances.BillboardGui = billboard
+		self.Instances.Label = textLabel
 	end
-
-	return highlight, clickDetector, billboard
+	
+	if Config.StockLabel then
+		local stockLabel = self.Part:FindFirstChild("SurfaceGui"):FindFirstChild("TextLabel")
+		stockLabel.Text = tostring(self.CurrentStock)
+		self.Instances.StockLabel = stockLabel
+	end
 end
 
 local function getIngredient(name)
@@ -78,18 +94,28 @@ local function getIngredient(name)
 	return ingredient
 end
 
+function CrateClass:AddStock(amount: number)
+	self.CurrentStock = math.clamp(self.CurrentStock + amount, 0, self.MaxStock)
+	self.Instances.StockLabel.Text = tostring(self.CurrentStock)
+end
+
 function CrateClass:Init()
-	local highlight: Highlight = self.Highlight
-	local clickDetector: ClickDetector = self.ClickDetector
-	local billboard: BillboardGui = self.BillboardGui
+	local highlight: Highlight = self.Instances.Highlight
+	local clickDetector: ClickDetector = self.Instances.ClickDetector
+	local billboard: BillboardGui = self.Instances.BillboardGui
 
 	if clickDetector then
 		clickDetector.MouseClick:Connect(function(player)
-			if #API:GetOwnedParts(player) >= API_Config.MaxIngredientsPerPlayer then return end
+			
+			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then return end
+			if self.CurrentStock <= 0 then return end
+			
 			local v: BasePart = getIngredient(self.Part.Name):Clone()
-			v.Parent = workspace.DraggableItems
+			self:AddStock(-1)
+			v.Parent = workspace.Items
 			local ingredient = IngredientClass.new(v)
 			ingredient:SetOwner(player)
+			
 		end)
 
 		clickDetector.MouseHoverEnter:Connect(function()
