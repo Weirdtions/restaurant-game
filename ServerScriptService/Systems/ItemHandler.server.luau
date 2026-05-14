@@ -42,7 +42,7 @@ DropItem.OnServerEvent:Connect(function(player, item)
 	local guid = player:GetAttribute("CarryingItem")
 	if not guid then return end
 	if item ~= findItemByGuid(guid) then return end
-	
+
 	player:SetAttribute("CarryingItem", nil)
 	item:SetNetworkOwner(nil)
 	item.FollowForce.Enabled = false
