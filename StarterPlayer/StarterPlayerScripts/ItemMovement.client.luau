@@ -48,8 +48,14 @@ local function onRenderStep(dt: number)
 	if direction.Magnitude > MAX_DISTANCE then
 		mousePos = rootPos + (direction.Unit * MAX_DISTANCE)
 	end
-
-	local targetPos = mousePos + VERTICAL_OFFSET
+	
+	local targetPos
+	
+	if currentItem.Name == "Knife" then
+		targetPos = mousePos + Vector3.new(0, 1, 0)
+	else
+		targetPos = mousePos + Vector3.new(0, 2, 0)
+	end
 	alignPos.Position = targetPos
 
 	if isFixedMode then
