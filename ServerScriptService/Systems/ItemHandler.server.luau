@@ -2,6 +2,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local CrateClass = require(ServerStorage.Classes.CrateClass)
 local UtensilClass = require(ServerStorage.Classes.UtensilClass)
 local SupplyBoxClass = require(ServerStorage.Classes.SupplyBoxClass)
+local PotatoCutterClass = require(ServerStorage.Classes.PotatoCutterClass)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UseItem = ReplicatedStorage.Remotes.UseItem
 local CollectionService = game:GetService("CollectionService")
@@ -11,6 +12,7 @@ local Identifiers = {
 	{tag = "Crate", class = CrateClass},
 	{tag = "Utensil", class = UtensilClass},
 	{tag = "SupplyBox", class = SupplyBoxClass},
+	{tag = "PotatoCutter", class = PotatoCutterClass},
 }
 
 for _, identifier in Identifiers do

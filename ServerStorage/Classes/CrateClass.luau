@@ -69,6 +69,7 @@ function CrateClass:ApplyConfig()
 		billboard.Parent = self.Part
 		billboard.Size = UDim2.new(0, 100, 0, 50)
 		billboard.StudsOffset = Vector3.new(-4, 0, 0)
+		billboard.AlwaysOnTop = true
 		local frame = Instance.new("Frame")
 		frame.Parent = billboard
 		frame.Size = UDim2.new(1, 0, 1, 0)
