@@ -84,6 +84,11 @@ local function setTargetItem(item: BasePart?)
 		if alignOri then alignOri.Enabled = false end
 
 		renderConn = RunService.RenderStepped:Connect(onRenderStep)
+		
+		local highlight = item:FindFirstChild("Highlight") :: Highlight
+		if highlight then
+			highlight.Enabled = false
+		end
 	else
 		mouse.TargetFilter = nil
 	end
