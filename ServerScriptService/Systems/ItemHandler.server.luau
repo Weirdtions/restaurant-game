@@ -1,12 +1,16 @@
 local ServerStorage = game:GetService("ServerStorage")
 local CrateClass = require(ServerStorage.Classes.CrateClass)
 local UtensilClass = require(ServerStorage.Classes.UtensilClass)
+local SupplyBoxClass = require(ServerStorage.Classes.SupplyBoxClass)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UseItem = ReplicatedStorage.Remotes.UseItem
 local CollectionService = game:GetService("CollectionService")
+local API = require(ServerStorage.API)
+
 local Identifiers = {
 	{tag = "Crate", class = CrateClass},
 	{tag = "Utensil", class = UtensilClass},
+	{tag = "SupplyBox", class = SupplyBoxClass},
 }
 
 for _, identifier in Identifiers do
@@ -27,23 +31,20 @@ for _, identifier in Identifiers do
 	end
 end
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DropItem = ReplicatedStorage.Remotes.DropItem
-local function findItemByGuid(guid: string): BasePart?
-	for _, item in ipairs(workspace.Items:GetChildren()) do
-		if item:IsA("BasePart") and item:GetAttribute("Guid") == guid then
-			return item
-		end
-	end
-	return nil
-end
 
 DropItem.OnServerEvent:Connect(function(player, item)
 	local guid = player:GetAttribute("CarryingItem")
 	if not guid then return end
-	if item ~= findItemByGuid(guid) then return end
+	if item ~= API.findItemByGuid(guid) then return end
 
 	player:SetAttribute("CarryingItem", nil)
+
+	if CollectionService:HasTag(item, "RestockPackage") then
+		item:Destroy()
+		return
+	end
+
 	item:SetNetworkOwner(nil)
 	item.FollowForce.Enabled = false
 	item.RotationForce.Enabled = false
