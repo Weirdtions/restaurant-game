@@ -1,5 +1,3 @@
-local TweenService = game:GetService("TweenService")
-
 local API = {}
 
 local Settings = {
@@ -19,6 +17,15 @@ function API.getOwnedParts(player)
 	end
 
 	return ownedParts
+end
+
+function API.findItemByGuid(guid: string): BasePart?
+	for _, item in workspace.Items:GetChildren() do
+		if item:IsA("BasePart") and item:GetAttribute("Guid") == guid then
+			return item
+		end
+	end
+	return nil
 end
 
 function API.cleanChildren(part)
