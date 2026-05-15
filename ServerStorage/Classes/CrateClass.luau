@@ -1,4 +1,5 @@
 local ServerStorage = game:GetService("ServerStorage")
+local CollectionService = game:GetService("CollectionService")
 local IngredientClass = require(ServerStorage.Classes.IngredientClass)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local API = require(ServerStorage.API)
@@ -17,6 +18,9 @@ local Config = {
 	["StockLabel"] = true, -- show the stock label?
 
 	["Folder"] = ReplicatedStorage.Assets.Ingredients, -- folder of the items in the crate
+
+	["RestockActionText"] = "Restock",
+	["RestockMaxDistance"] = 10,
 }
 
 local CrateClass = {}
@@ -34,6 +38,7 @@ function CrateClass.new(part)
 		Billboard = nil,
 		Label = nil,
 		StockLabel = nil,
+		RestockPrompt = nil,
 	}
 
 	self:ApplyConfig()
@@ -80,6 +85,15 @@ function CrateClass:ApplyConfig()
 		stockLabel.Text = tostring(self.CurrentStock)
 		self.Instances.StockLabel = stockLabel
 	end
+
+	local restockPrompt = Instance.new("ProximityPrompt")
+	restockPrompt.ActionText = Config.RestockActionText
+	restockPrompt.ObjectText = self.Part.Name
+	restockPrompt.MaxActivationDistance = Config.RestockMaxDistance
+	restockPrompt.RequiresLineOfSight = false
+	restockPrompt.Enabled = false
+	restockPrompt.Parent = self.Part
+	self.Instances.RestockPrompt = restockPrompt
 end
 
 local function getIngredient(name)
@@ -96,13 +110,38 @@ end
 
 function CrateClass:AddStock(amount: number)
 	self.CurrentStock = math.clamp(self.CurrentStock + amount, 0, self.MaxStock)
-	self.Instances.StockLabel.Text = tostring(self.CurrentStock)
+
+	if self.Instances.StockLabel then
+		self.Instances.StockLabel.Text = tostring(self.CurrentStock)
+	end
+
+	if self.Instances.RestockPrompt then
+		self.Instances.RestockPrompt.Enabled = (self.CurrentStock <= 0)
+	end
+
+	self:UpdateVisualState()
+end
+
+function CrateClass:NeedsRestock(): boolean
+	return self.CurrentStock <= 0
+end
+
+function CrateClass:UpdateVisualState()
+	local stockLabel = self.Instances.StockLabel
+	if not stockLabel then return end
+
+	if self.CurrentStock <= 0 then
+		stockLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+	else
+		stockLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	end
 end
 
 function CrateClass:Init()
 	local highlight: Highlight = self.Instances.Highlight
 	local clickDetector: ClickDetector = self.Instances.ClickDetector
 	local billboard: BillboardGui = self.Instances.BillboardGui
+	local restockPrompt: ProximityPrompt = self.Instances.RestockPrompt
 
 	if clickDetector then
 		clickDetector.MouseClick:Connect(function(player)
@@ -134,6 +173,30 @@ function CrateClass:Init()
 			if billboard then
 				billboard.Enabled = false
 			end
+		end)
+	end
+
+	if restockPrompt then
+		restockPrompt.Triggered:Connect(function(player: Player)
+			if not self:NeedsRestock() then return end
+
+			local guid = player:GetAttribute("CarryingItem")
+			if not guid then return end
+
+			local item = API.findItemByGuid(guid)
+			if not item then return end
+			if not CollectionService:HasTag(item, "RestockPackage") then return end
+
+			local character = player.Character
+			if not character then return end
+			local root = character:FindFirstChild("HumanoidRootPart") :: BasePart
+			if not root then return end
+			if (root.Position - self.Part.Position).Magnitude > Config.RestockMaxDistance + 2 then return end
+
+			self:AddStock(self.MaxStock)
+
+			player:SetAttribute("CarryingItem", nil)
+			item:Destroy()
 		end)
 	end
 end
