@@ -11,7 +11,7 @@ local Config = {
 
 	["HighlightItem"] = true,
 	["HighlightColor"] = Color3.fromRGB(180, 255, 180),
-	["HighlightTransparency"] = 0.8,
+	["HighlightTransparency"] = 1,
 
 	["AcceptedIngredient"] = "Potato", -- only accepts potatos
 

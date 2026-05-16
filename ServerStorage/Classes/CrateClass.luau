@@ -2,6 +2,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local CollectionService = game:GetService("CollectionService")
 local IngredientClass = require(ServerStorage.Classes.IngredientClass)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UI = require(ReplicatedStorage.UI)
 local API = require(ServerStorage.API)
 local Settings = API:GetSettings()
 local Config = {
@@ -64,21 +65,9 @@ function CrateClass:ApplyConfig()
 	end
 
 	if Config.BillboardGui then
-		local billboard = Instance.new("BillboardGui")
-		billboard.Enabled = false
-		billboard.Parent = self.Part
-		billboard.Size = UDim2.new(0, 100, 0, 50)
-		billboard.StudsOffset = Vector3.new(-4, 0, 0)
-		billboard.AlwaysOnTop = true
-		local frame = Instance.new("Frame")
-		frame.Parent = billboard
-		frame.Size = UDim2.new(1, 0, 1, 0)
-		local textLabel = Instance.new("TextLabel")
-		textLabel.Parent = frame
-		textLabel.Size = UDim2.new(1, 0, 1, 0)
-		textLabel.Text = self.Part.Name
-		self.Instances.BillboardGui = billboard
-		self.Instances.Label = textLabel
+		local billboard = UI.FoodGui(self.Part)
+		self.Instances.Billboard = billboard
+		self.Instances.Label = billboard:WaitForChild("NameFrame"):WaitForChild("NameLabel")
 	end
 
 	if Config.StockLabel then

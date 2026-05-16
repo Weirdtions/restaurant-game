@@ -1,6 +1,7 @@
 local ServerStorage = game:GetService("ServerStorage")
 local API = require(ServerStorage.API)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UI = require(ReplicatedStorage.UI)
 local ChopIngredient: BindableEvent = ReplicatedStorage.Bindables.ChopIngredient
 local SpawnItem: BindableEvent = ReplicatedStorage.Bindables.SpawnItem
 local Settings = API:GetSettings()
@@ -92,18 +93,7 @@ function IngredientClass:ApplyConfig()
 	end
 
 	if Config.BillboardGui then
-		billboard = Instance.new("BillboardGui")
-		billboard.Enabled = false
-		billboard.Parent = self.Part
-		billboard.Size = UDim2.new(0, 100, 0, 50)
-		billboard.StudsOffset = Vector3.new(-4, 0, 0)
-		local frame = Instance.new("Frame")
-		frame.Parent = billboard
-		frame.Size = UDim2.new(1, 0, 1, 0)
-		local textLabel = Instance.new("TextLabel")
-		textLabel.Parent = frame
-		textLabel.Size = UDim2.new(1, 0, 1, 0)
-		textLabel.Text = self.Part.Name
+		billboard = UI.FoodGui(self.Part)
 	end
 
 	return highlight, clickDetector, billboard
