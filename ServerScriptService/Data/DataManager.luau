@@ -1,5 +1,6 @@
-local DataManager = {}
+local ServerStorage = game:GetService("ServerStorage")
 
+local DataManager = {}
 DataManager.Profiles = {}
 
 function DataManager.AddPoints(player, points)
