@@ -67,20 +67,60 @@ UI.Properties = {
 				["AlignmentX"] = Enum.TextXAlignment.Center,
 				["AlignmentY"] = Enum.TextYAlignment.Center,
 			},
-			
-			-- Icons
-			["IconFrame"] = {
+
+			-- TagsFrame
+			["TagsFrame"] = {
 				["Visible"] = true,
 				["Size"] = UDim2.new(1, 0, 0.6, 0),
 				["Position"] = UDim2.new(0.5, 0, 0, 0),
+				["ListPadding"] = UDim.new(0.025, 0),
+				["ListFillDirection"] = Enum.FillDirection.Vertical,
+				["ListSortOrder"] = Enum.SortOrder.LayoutOrder,
+				["ListHorizontalAlignment"] = Enum.HorizontalAlignment.Center,
+				["ListVerticalAlignment"] = Enum.VerticalAlignment.Bottom,
 			}
 		},
+		["Tag"] = {
+			["Visible"] = true,
+			["Size"] = UDim2.new(1, 0, 0.5, 0),
+			["Position"] = UDim2.new(0, 0, 0, 0),
+			["BackgroundTransparency"] = 1,
+
+			-- UICorner
+			["CornerRadius"] = UDim.new(0.5, 0),
+
+			-- UIStroke
+			["BorderColor"] = Color.Black,
+			["BorderThickness"] = 0,
+
+			-- UIPadding
+			["PaddingTop"] = UDim.new(0.05, 0),
+			["PaddingBottom"] = UDim.new(0.05, 0),
+			["PaddingLeft"] = UDim.new(0.05, 0),
+			["PaddingRight"] = UDim.new(0.05, 0),
+
+			-- UIListLayout
+			["ListPadding"] = UDim.new(0.025, 0),
+			["ListFillDirection"] = Enum.FillDirection.Vertical,
+			["ListSortOrder"] = Enum.SortOrder.LayoutOrder,
+			["ListHorizontalAlignment"] = Enum.HorizontalAlignment.Center,
+			["ListVerticalAlignment"] = Enum.VerticalAlignment.Bottom,
+
+			-- TextLabel
+			["TextLabel"] = {
+				["Visible"] = true,
+				["Size"] = UDim2.new(1, 0, 1, 0),
+				["Position"] = UDim2.new(0, 0, 0, 0),
+				["AlignmentX"] = Enum.TextXAlignment.Center,
+				["AlignmentY"] = Enum.TextYAlignment.Center,
+			},
+		}
 	},
 	["FoodGui"] = {		-- ui displayed when hovering over ingredient
 		["BillboardGui"] = {
 			["AlwaysOnTop"] = true,
-			["Size"] = UDim2.new(0, 200, 0, 100),
-			["StudsOffset"] = Vector3.new(-4, 0, 0),
+			["Size"] = UDim2.new(3, 0, 1.5, 0),
+			["StudsOffset"] = Vector3.new(-3, 0, 0),
 		},
 		["NameFrame"] = {
 			["Visible"] = true,
@@ -185,35 +225,63 @@ function UI.FoodGui(parent: BasePart)
 				Placeholder.UIStroke(Config.DetailFrame.BorderColor, Config.DetailFrame.BorderThickness)})}
 	)
 	billboard.Enabled = false
+	local nameLabel: TextLabel = billboard:WaitForChild("NameFrame"):WaitForChild("NameLabel")
+	local detailLabel: TextLabel = billboard:WaitForChild("DetailFrame"):WaitForChild("DetailLabel")
+	nameLabel.Text = parent.Name
+	detailLabel.Text = "• " .. parent.Name
 
 	return billboard
 end
 
-function UI.NametagGui(parent: Instance)
+function UI.NametagGui(parent: Instance, player: Player)
 	local Config = UI.Properties.NametagGui
 
 	local billboard: BillboardGui = Placeholder.BillboardGui("Nametag", parent, Config.BillboardGui.AlwaysOnTop, Config.BillboardGui.Size, Config.BillboardGui.StudsOffset, 
 		{Placeholder.Frame("MainFrame", Config.MainFrame.Visible, Config.MainFrame.Size, Config.MainFrame.Position, Config.MainFrame.BackgroundColor, 1,
-				{Placeholder.TextLabel("TitleLabel", Config.MainFrame.TitleLabel.Visible, Config.MainFrame.TitleLabel.Size, nil, 2, Config.MainFrame.TitleLabel.Color, Config.MainFrame.TitleLabel.AlignmentX, Config.MainFrame.TitleLabel.AlignmentY, nil),
-				Placeholder.TextLabel("NameLabel", Config.MainFrame.NameLabel.Visible, Config.MainFrame.NameLabel.Size, nil, 2, Config.MainFrame.NameLabel.Color, Config.MainFrame.NameLabel.AlignmentX, Config.MainFrame.NameLabel.AlignmentY, nil),
+			{Placeholder.Frame("Tags", Config.MainFrame.TagsFrame.Visible, Config.MainFrame.TagsFrame.Size, Config.MainFrame.TagsFrame.Position, Color.White, 1, {
+				Placeholder.UIListLayout(Config.MainFrame.TagsFrame.ListPadding, Config.MainFrame.TagsFrame.ListFillDirection, Config.MainFrame.TagsFrame.ListSortOrder, Config.MainFrame.TagsFrame.ListHorizontalAlignment, Config.MainFrame.TagsFrame.ListVerticalAlignment)}),
+				Placeholder.TextLabel("TitleLabel", Config.MainFrame.TitleLabel.Visible, Config.MainFrame.TitleLabel.Size, nil, 1, Config.MainFrame.TitleLabel.Color, Config.MainFrame.TitleLabel.AlignmentX, Config.MainFrame.TitleLabel.AlignmentY, nil),
+				Placeholder.TextLabel("NameLabel", Config.MainFrame.NameLabel.Visible, Config.MainFrame.NameLabel.Size, nil, 1, Config.MainFrame.NameLabel.Color, Config.MainFrame.NameLabel.AlignmentX, Config.MainFrame.NameLabel.AlignmentY, nil),
 				Placeholder.UICorner(Config.MainFrame.CornerRadius),
 				Placeholder.UIListLayout(Config.MainFrame.ListPadding, Config.MainFrame.ListFillDirection, Config.MainFrame.ListSortOrder, Config.MainFrame.ListHorizontalAlignment, Config.MainFrame.ListVerticalAlignment),
 				Placeholder.UIPadding(Config.MainFrame.PaddingTop, Config.MainFrame.PaddingBottom, Config.MainFrame.PaddingLeft, Config.MainFrame.PaddingRight),
 				Placeholder.UIStroke(Config.MainFrame.BorderColor, Config.MainFrame.BorderThickness)}
-		)}
+			)}
 	)
 
 	local mainFrame = billboard:FindFirstChild("MainFrame")
 	if mainFrame then
 		mainFrame.BackgroundTransparency = Config.MainFrame.BackgroundTransparency
 	end
+	local tagsFrame = mainFrame:FindFirstChild("Tags")
+	if tagsFrame then
+		tagsFrame.BackgroundTransparency = 1
+	end
 
 	local titleLabel = mainFrame:FindFirstChild("TitleLabel")
 	local nameLabel = mainFrame:FindFirstChild("NameLabel")
-	if titleLabel then titleLabel.LayoutOrder = 1 end
-	if nameLabel then nameLabel.LayoutOrder = 2 end
+	if nameLabel then nameLabel.LayoutOrder = 1 end
+	if titleLabel then titleLabel.LayoutOrder = 2 end
+
+	billboard.ResetOnSpawn = false
+	nameLabel.Text = player.Name
+	titleLabel.Text = player:GetRoleInGroupAsync(458948512) or "Guest"
 
 	return billboard
+end
+function UI.Tag(tagName, data)
+	local Config = UI.Properties.NametagGui.Tag
+	local tag: Frame = Placeholder.Frame(tagName, Config.Visible, Config.Size, Config.Position, data.BackgroundColor, 1, {
+		Placeholder.TextLabel("TextLabel", Config.TextLabel.Visible, Config.TextLabel.Size, Config.TextLabel.Position, 1, data.TextColor, Config.TextLabel.AlignmentX, Config.TextLabel.AlignmentY, {}),
+		Placeholder.UICorner(Config.CornerRadius),
+		Placeholder.UIPadding(Config.PaddingTop, Config.PaddingBottom, Config.PaddingLeft, Config.PaddingRight)
+	})
+
+	tag.BackgroundTransparency = Config.BackgroundTransparency
+	tag.LayoutOrder = data.Priority
+	tag.TextLabel.Text = data.Text
+
+	return tag
 end
 
 return UI

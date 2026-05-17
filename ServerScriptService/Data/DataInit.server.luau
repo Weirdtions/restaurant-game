@@ -29,7 +29,7 @@ local function PlayerAdded(player)
 			return player.Parent ~= Players
 		end,
 	})
-
+	
 	if profile then
 		profile:AddUserId(player.UserId)
 		profile:Reconcile()
@@ -45,7 +45,6 @@ local function PlayerAdded(player)
 		else
 			profile:EndSession()
 		end
-		print(profile.Data)
 	else
 		player:Kick("Data issue, try rejoin")
 	end

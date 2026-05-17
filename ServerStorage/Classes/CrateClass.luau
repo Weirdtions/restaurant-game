@@ -2,7 +2,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local CollectionService = game:GetService("CollectionService")
 local IngredientClass = require(ServerStorage.Classes.IngredientClass)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UI = require(ReplicatedStorage.UI)
+local UI = require(ReplicatedStorage.UI.UI)
 local API = require(ServerStorage.API)
 local Settings = API:GetSettings()
 local Config = {
@@ -36,7 +36,7 @@ function CrateClass.new(part)
 	self.Instances = {
 		Highlight = nil,
 		ClickDetector = nil,
-		Billboard = nil,
+		BillboardGui = nil,
 		Label = nil,
 		StockLabel = nil,
 		RestockPrompt = nil,
@@ -66,7 +66,7 @@ function CrateClass:ApplyConfig()
 
 	if Config.BillboardGui then
 		local billboard = UI.FoodGui(self.Part)
-		self.Instances.Billboard = billboard
+		self.Instances.BillboardGui = billboard
 		self.Instances.Label = billboard:WaitForChild("NameFrame"):WaitForChild("NameLabel")
 	end
 
@@ -99,6 +99,17 @@ local function getIngredient(name)
 end
 
 function CrateClass:AddStock(amount: number)
+	if self.CurrentStock > 0 then
+		local children = self.Part:FindFirstChild(tostring(self.CurrentStock))
+		children.Transparency = 1
+	else
+		for _, v in self.Part:GetChildren() do
+			if v:IsA("BasePart") then
+				v.Transparency = 0
+			end
+		end
+	end
+	
 	self.CurrentStock = math.clamp(self.CurrentStock + amount, 0, self.MaxStock)
 
 	if self.Instances.StockLabel then
@@ -160,6 +171,7 @@ function CrateClass:Init()
 			if highlight then
 				highlight.Enabled = false
 			end
+			
 			if billboard then
 				billboard.Enabled = false
 			end

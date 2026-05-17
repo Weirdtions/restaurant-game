@@ -9,6 +9,8 @@ local mouse = player:GetMouse()
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local DropItem = Remotes:WaitForChild("DropItem") :: RemoteEvent
 local UseItem = Remotes:WaitForChild("UseItem") :: RemoteEvent
+local InteractionConfig = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("InteractionConfig"))
+
 
 local MAX_DISTANCE = 15
 local VERTICAL_OFFSET = Vector3.new(0, 2, 0)
@@ -108,7 +110,54 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 	if processed or not currentItem then return end
 
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		DropItem:FireServer(currentItem)
+		local isFood = CollectionService:HasTag(currentItem, "Ingredient")
+		local isChopped = currentItem:GetAttribute("Chopped")
+		
+		if not isFood or isChopped then
+			-- Non-food items or chopped ingredients can be dropped anywhere
+			DropItem:FireServer(currentItem)
+		else
+			-- Food items can ONLY be dropped on valid stations
+			local targetStation = nil
+			local mouseTarget = mouse.Target
+			
+			if mouseTarget then
+				-- Check ancestors for station tags
+				local curr = mouseTarget
+				while curr and curr ~= workspace do
+					for stationTag, config in pairs(InteractionConfig.Stations) do
+						if CollectionService:HasTag(curr, stationTag) then
+							-- Check if this station accepts this item
+							local isValid = false
+							if config.AcceptedItems then
+								for _, item in ipairs(config.AcceptedItems) do
+									if item == currentItem.Name then isValid = true break end
+								end
+							end
+							if config.AcceptedTags then
+								for _, tag in ipairs(config.AcceptedTags) do
+									if CollectionService:HasTag(currentItem, tag) then isValid = true break end
+								end
+							end
+							
+							if isValid then
+								targetStation = curr
+								break
+							end
+						end
+					end
+					
+					if targetStation then break end
+					curr = curr.Parent
+				end
+			end
+			
+			if targetStation then
+				-- We found a valid station to drop it on
+				DropItem:FireServer(currentItem, targetStation)
+			end
+			-- If no valid target, do nothing (prevent dropping)
+		end
 
 	elseif input.KeyCode == Enum.KeyCode.E then
 		if not CollectionService:HasTag(currentItem, "Usable") then return end

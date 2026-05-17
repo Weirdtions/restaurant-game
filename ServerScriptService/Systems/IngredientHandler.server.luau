@@ -7,6 +7,7 @@ SpawnItem.Event:Connect(function(itemName: string, position: Vector3, folder: Fo
 	local choppedPart = folder:FindFirstChild(itemName):Clone()
 	local choppedIngredient = IngredientClass.new(choppedPart)
 	choppedIngredient.Chopped = true
+	choppedPart:SetAttribute("Chopped", true)
 	choppedIngredient:Init()
 	choppedIngredient.Part.Parent = workspace
 	choppedIngredient.Part.Position = position

@@ -134,6 +134,7 @@ function IngredientClass:SetOwner(player)
 		self.Part:SetAttribute("Guid", game:GetService("HttpService"):GenerateGUID(false))
 	end
 
+	self.Part:SetAttribute("CurrentPlayer", player.Name)
 	self.Part:SetNetworkOwner(player)
 	player:SetAttribute("CarryingItem", self.Part:GetAttribute("Guid"))
 
