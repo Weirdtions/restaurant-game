@@ -8,15 +8,15 @@ local CollisionService = require(ServerStorage.Services.CollisionService)
 local API = require(ServerStorage.API)
 local Settings = API:GetSettings()
 local Config = {
-	["IgnoreCollision"] = {workspace.Characters, workspace.Items},
+	["IgnoreCollision"] = { workspace.Characters, workspace.Items },
 
 	["HighlightItem"] = true, -- highlight the item?
 	["HighlightColor"] = Color3.fromRGB(255, 255, 255), -- color of the highlight
 	["HighlightTransparency"] = 1, -- transparency of the highlight
 
-	["MaxForce"] = 1000, 
-	["MaxTorque"] = 1000000, 
-	["Responsiveness"] = 100, 
+	["MaxForce"] = 1000,
+	["MaxTorque"] = 1000000,
+	["Responsiveness"] = 100,
 
 	["Interactable"] = true, -- can the crate be interacted with?
 	["MaxInteractDistance"] = 10, -- max distance you can interact with the crate
@@ -57,7 +57,7 @@ function UtensilClass:Setup()
 	alignPosition.Name = "FollowForce"
 	alignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
 	alignPosition.Attachment0 = attachment
-	alignPosition.Position = self.Part.Position 
+	alignPosition.Position = self.Part.Position
 	alignPosition.MaxForce = Config.MaxForce
 	alignPosition.Responsiveness = Config.Responsiveness
 	alignPosition.Enabled = false
@@ -67,7 +67,7 @@ function UtensilClass:Setup()
 	alignOrientation.Name = "RotationForce"
 	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
 	alignOrientation.Attachment0 = attachment
-	alignOrientation.CFrame = self.Part.CFrame 
+	alignOrientation.CFrame = self.Part.CFrame
 	alignOrientation.MaxTorque = Config.MaxTorque
 	alignOrientation.Responsiveness = Config.Responsiveness
 	alignOrientation.Enabled = false
@@ -110,41 +110,43 @@ function UtensilClass:ApplyConfig()
 end
 
 function UtensilClass:Init()
-	local highlight: Highlight, clickDetector: ClickDetector, billboard: BillboardGui = self.Instances.Highlight, self.Instances.ClickDetector, self.Instances.BillboardGui
+	local highlight: Highlight, clickDetector: ClickDetector, billboard: BillboardGui =
+		self.Instances.Highlight, self.Instances.ClickDetector, self.Instances.BillboardGui
 
 	if clickDetector then
-
 		clickDetector.MouseClick:Connect(function(player)
 			local character = player.Character
-			if not character or (character.PrimaryPart.Position - self.Part.Position).Magnitude > Config.MaxInteractDistance + 2 then return end
-			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then return end
+			if
+				not character
+				or (character.PrimaryPart.Position - self.Part.Position).Magnitude > Config.MaxInteractDistance + 2
+			then
+				return
+			end
+			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then
+				return
+			end
 
 			self.Part.Parent = workspace.Items
 			self:SetOwner(player)
 		end)
 
 		clickDetector.MouseHoverEnter:Connect(function()
-
 			if highlight then
 				highlight.Enabled = true
 			end
 			if billboard then
 				billboard.Enabled = true
 			end
-
 		end)
 
 		clickDetector.MouseHoverLeave:Connect(function()
-
 			if highlight then
 				highlight.Enabled = false
 			end
 			if billboard then
 				billboard.Enabled = false
 			end
-
 		end)
-
 	end
 end
 
@@ -161,23 +163,25 @@ function UtensilClass:SetOwner(player)
 end
 
 function UtensilClass:StartUsing()
-	if self._Connection then return end
+	if self._Connection then
+		return
+	end
 
 	self.IsUsing = true
 
 	self._Connection = RunService.Heartbeat:Connect(function(dt)
-		if not self.IsUsing then 
+		if not self.IsUsing then
 			self:StopUsing()
-			return 
+			return
 		end
 
 		local collidingParts = CollisionService.getCollidingParts(self.Part, Config.IgnoreCollision)
 
 		for _, part in collidingParts do
 			if CollectionService:HasTag(part, "Ingredient") then
-				self.IsUsing = false 
+				self.IsUsing = false
 				ChopIngredient:Fire(part)
-				self:StopUsing() 
+				self:StopUsing()
 				break
 			end
 		end

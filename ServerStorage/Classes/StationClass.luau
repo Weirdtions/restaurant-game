@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local SpawnItem: BindableEvent = ReplicatedStorage.Bindables.SpawnItem
 local InteractionConfig = require(ReplicatedStorage.Data.InteractionConfig)
+local BeverageData = require(ReplicatedStorage.Data.BeverageData)
 
 local StationClass = {}
 StationClass.__index = StationClass
@@ -55,29 +56,41 @@ function StationClass:GetSpawnPosition(): Vector3
 end
 
 function StationClass:ProcessIngredient(ingredientPart: BasePart)
-	if self.IsOnCooldown then return end
+	if self.IsOnCooldown then
+		return
+	end
 
 	local isValid = false
 	if self.Config.AcceptedItems then
 		for _, item in ipairs(self.Config.AcceptedItems) do
-			if item == ingredientPart.Name then isValid = true break end
+			if item == ingredientPart.Name then
+				isValid = true
+				break
+			end
 		end
 	end
 	if self.Config.AcceptedTags then
 		for _, tag in ipairs(self.Config.AcceptedTags) do
-			if CollectionService:HasTag(ingredientPart, tag) then isValid = true break end
+			if CollectionService:HasTag(ingredientPart, tag) then
+				isValid = true
+				break
+			end
 		end
 	end
 
-	if not isValid then return end
+	if not isValid then
+		return
+	end
 
 	self.IsOnCooldown = true
 
-	local ownerName = ingredientPart:GetAttribute("CurrentPlayer")
-	if ownerName then
-		local player = game.Players:FindFirstChild(ownerName)
-		if player then
-			player:SetAttribute("CarryingItem", nil)
+	if self.Config.DropItem then
+		local ownerName = ingredientPart:GetAttribute("CurrentPlayer")
+		if ownerName then
+			local player = game.Players:FindFirstChild(ownerName)
+			if player then
+				player:SetAttribute("CarryingItem", nil)
+			end
 		end
 	end
 
@@ -98,10 +111,22 @@ function StationClass:ProcessIngredient(ingredientPart: BasePart)
 			ingredientPart.FollowForce.Enabled = false
 			ingredientPart.RotationForce.Enabled = false
 		end
-		
+
 		ingredientPart.Position = self:GetSpawnPosition()
 		ingredientPart.Parent = workspace
-		
+	elseif self.Config.Action == "Fill" then
+		local beverageType
+		if CollectionService:HasTag(self.Part, "Base") then
+			beverageType = "Base"
+		end
+		local data = BeverageData[beverageType][self.Part.Name]
+
+		local cup = ingredientPart.Handle
+		local liquid = cup:FindFirstChild("Liquid")
+		if liquid then
+			liquid.Transparency = 0
+			liquid.Color = data.Color
+		end
 	elseif self.Config.Action == "Destroy" then
 		ingredientPart:Destroy()
 	end
@@ -125,7 +150,6 @@ function StationClass:Init()
 	end
 end
 
-function StationClass:Destroy()
-end
+function StationClass:Destroy() end
 
 return StationClass

@@ -3,17 +3,22 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local DataManager = require(ServerScriptService.Data.DataManager)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UpdateNametag: BindableEvent = ReplicatedStorage.Bindables.UpdateNametag
-local UI = require(ReplicatedStorage.UI.UI)
+local UI = require(ReplicatedStorage.Assets.Default.UI)
 local TagData = require(ReplicatedStorage.Data.TagData)
 
-local ActiveNametags: {[Player]: BillboardGui} = {}
+local ActiveNametags: { [Player]: BillboardGui } = {}
 
 local function createNametag(player: Player, character: Model)
 	local profile = DataManager.Profiles[player]
-	if not profile then warn("No profile found for", player.Name) return end
-	
+	if not profile then
+		warn("No profile found for", player.Name)
+		return
+	end
+
 	local head = character:FindFirstChild("Head")
-	if not head then return end
+	if not head then
+		return
+	end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
@@ -21,7 +26,7 @@ local function createNametag(player: Player, character: Model)
 	local billboard = UI.NametagGui(head, player)
 	billboard.Parent = head
 	ActiveNametags[player] = billboard
-	
+
 	if profile.Data.Tags then
 		for _, tag in profile.Data.Tags do
 			local t = UI.Tag(tag, TagData[tag])
@@ -40,7 +45,9 @@ end
 
 local function onCharacterAdded(player: Player, character: Model)
 	task.defer(function()
-		if not player.Parent then return end
+		if not player.Parent then
+			return
+		end
 		createNametag(player, character)
 	end)
 end
@@ -48,8 +55,11 @@ end
 local function onPlayerAdded(player: Player)
 	task.wait(1)
 	local profile = DataManager.Profiles[player]
-	if not profile then warn("No profile found for", player.Name) return end
-	
+	if not profile then
+		warn("No profile found for", player.Name)
+		return
+	end
+
 	if player.Character then
 		onCharacterAdded(player, player.Character)
 	end

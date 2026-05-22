@@ -1,5 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UI = require(ReplicatedStorage.UI.UI)
+local UI = require(ReplicatedStorage.Assets.Default.UI)
 local Color = UI.Colors
 
 local TagData = {
@@ -12,5 +12,4 @@ local TagData = {
 	},
 }
 
-end
 return TagData

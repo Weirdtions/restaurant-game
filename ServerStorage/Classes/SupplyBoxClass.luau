@@ -30,7 +30,7 @@ function SupplyBoxClass.new(part: BasePart)
 		Highlight = nil,
 		ClickDetector = nil,
 	}
-	
+
 	self:ApplyConfig()
 	return self
 end
@@ -92,9 +92,7 @@ function SupplyBoxClass:CreatePackage(player: Player): BasePart
 
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
-	package.Position = if root
-		then root.Position + Vector3.new(0, 3, 0)
-		else self.Part.Position + Vector3.new(0, 3, 0)
+	package.Position = if root then root.Position + Vector3.new(0, 3, 0) else self.Part.Position + Vector3.new(0, 3, 0)
 
 	package.Parent = workspace.Items
 
@@ -113,24 +111,34 @@ function SupplyBoxClass:Init()
 	clickDetector.Parent = self.Part
 
 	clickDetector.MouseClick:Connect(function(player: Player)
-		if player:GetAttribute("CarryingItem") then return end
-		if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then return end
+		if player:GetAttribute("CarryingItem") then
+			return
+		end
+		if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then
+			return
+		end
 
 		local character = player.Character
-		if not character then return end
+		if not character then
+			return
+		end
 		local root = character:FindFirstChild("HumanoidRootPart") :: BasePart
-		if not root then return end
-		if (root.Position - self.Part.Position).Magnitude > Config.MaxInteractDistance + 2 then return end
+		if not root then
+			return
+		end
+		if (root.Position - self.Part.Position).Magnitude > Config.MaxInteractDistance + 2 then
+			return
+		end
 
 		self:CreatePackage(player)
 	end)
-	
+
 	clickDetector.MouseHoverEnter:Connect(function(player: Player)
 		if highlight then
 			highlight.Enabled = true
 		end
 	end)
-	
+
 	clickDetector.MouseHoverLeave:Connect(function(player: Player)
 		if highlight then
 			highlight.Enabled = false

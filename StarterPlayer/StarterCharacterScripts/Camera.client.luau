@@ -1,15 +1,17 @@
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+local BindableInput: BindableEvent = PlayerGui:WaitForChild("Inputs"):WaitForChild("BindableInput")
 local character = player.Character or player.CharacterAdded:Wait()
 local mouse = player:GetMouse()
 
 mouse.Icon = "http://www.roblox.com/asset/?id=11232270592"
 local isFirstPerson = false
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.KeyCode == Enum.KeyCode.V then
+BindableInput.Event:Connect(function(action)
+	print(action)
+	if action == "ToggleCameraView" then
 		local head = character:WaitForChild("Head")
 		local nametag = head:WaitForChild("Nametag")
 		if isFirstPerson then

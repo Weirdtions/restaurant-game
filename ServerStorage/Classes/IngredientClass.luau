@@ -1,7 +1,7 @@
 local ServerStorage = game:GetService("ServerStorage")
 local API = require(ServerStorage.API)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UI = require(ReplicatedStorage.UI)
+local UI = require(ReplicatedStorage.Assets.Default.UI)
 local ChopIngredient: BindableEvent = ReplicatedStorage.Bindables.ChopIngredient
 local SpawnItem: BindableEvent = ReplicatedStorage.Bindables.SpawnItem
 local Settings = API:GetSettings()
@@ -10,9 +10,9 @@ local Config = {
 	["HighlightColor"] = Color3.fromRGB(255, 255, 255), -- color of the highlight
 	["HighlightTransparency"] = 1, -- transparency of the highlight
 
-	["MaxForce"] = 1000, 
-	["MaxTorque"] = 1000000, 
-	["Responsiveness"] = 100, 
+	["MaxForce"] = 1000,
+	["MaxTorque"] = 1000000,
+	["Responsiveness"] = 100,
 
 	["Interactable"] = true, -- can the crate be interacted with?
 	["MaxInteractDistance"] = 10, -- max distance you can interact with the crate
@@ -24,7 +24,7 @@ local Config = {
 	["ChopCount"] = { -- how many parts an ingredient is split when chopped
 		["Default"] = 3,
 		["Tomato"] = 3,
-	}
+	},
 }
 
 local IngredientClass = {}
@@ -38,41 +38,19 @@ function IngredientClass.new(part)
 	self.Chopped = false
 
 	self.TargetAttachment = Instance.new("Attachment")
-	self:Setup()
+	API.setupMovableItem(self.Part, Config)
 	self:Init()
 	self._connection = ChopIngredient.Event:Connect(function(part)
-		if self.Chopped then return end
-		if part ~= self.Part then return end
+		if self.Chopped then
+			return
+		end
+		if part ~= self.Part then
+			return
+		end
 		self:OnChopped(part)
 	end)
 
 	return self
-end
-
-function IngredientClass:Setup()
-	local attachment = Instance.new("Attachment")
-	attachment.Name = "CenterAttachment"
-	attachment.Parent = self.Part
-
-	local alignPosition = Instance.new("AlignPosition")
-	alignPosition.Name = "FollowForce"
-	alignPosition.Mode = Enum.PositionAlignmentMode.OneAttachment
-	alignPosition.Attachment0 = attachment
-	alignPosition.Position = self.Part.Position 
-	alignPosition.MaxForce = Config.MaxForce
-	alignPosition.Responsiveness = Config.Responsiveness
-	alignPosition.Enabled = false
-	alignPosition.Parent = self.Part
-
-	local alignOrientation = Instance.new("AlignOrientation")
-	alignOrientation.Name = "RotationForce"
-	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	alignOrientation.Attachment0 = attachment
-	alignOrientation.CFrame = self.Part.CFrame 
-	alignOrientation.MaxTorque = Config.MaxTorque
-	alignOrientation.Responsiveness = Config.Responsiveness
-	alignOrientation.Enabled = false
-	alignOrientation.Parent = self.Part
 end
 
 function IngredientClass:ApplyConfig()
@@ -104,7 +82,9 @@ function IngredientClass:Init()
 
 	if clickDetector then
 		clickDetector.MouseClick:Connect(function(player)
-			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then return end
+			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then
+				return
+			end
 			self.Part.Parent = workspace.Items
 			self:SetOwner(player)
 		end)
@@ -154,11 +134,13 @@ function IngredientClass:Destroy()
 end
 
 function IngredientClass:OnChopped(part)
-	if self.Chopped then return end
+	if self.Chopped then
+		return
+	end
 
 	if part == self.Part then
 		local originalPosition = self.Part.Position
-		for i=1, (Config.ChopCount[part.Name] or Config.ChopCount.Default) do
+		for i = 1, (Config.ChopCount[part.Name] or Config.ChopCount.Default) do
 			SpawnItem:Fire(part.Name, originalPosition, Config.ChoppedFolder)
 		end
 		self:Destroy()

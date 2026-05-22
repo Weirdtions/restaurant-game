@@ -2,7 +2,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local CollectionService = game:GetService("CollectionService")
 local IngredientClass = require(ServerStorage.Classes.IngredientClass)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UI = require(ReplicatedStorage.UI.UI)
+local UI = require(ReplicatedStorage.Assets.Default.UI)
 local API = require(ServerStorage.API)
 local Settings = API:GetSettings()
 local Config = {
@@ -86,18 +86,6 @@ function CrateClass:ApplyConfig()
 	self.Instances.RestockPrompt = restockPrompt
 end
 
-local function getIngredient(name)
-	local folder = Config.Folder
-	local ingredient = folder:FindFirstChild(name)
-
-	if not ingredient then
-		warn("Ingredient not found: " .. name)
-		return
-	end
-
-	return ingredient
-end
-
 function CrateClass:AddStock(amount: number)
 	if self.CurrentStock > 0 then
 		local children = self.Part:FindFirstChild(tostring(self.CurrentStock))
@@ -109,7 +97,7 @@ function CrateClass:AddStock(amount: number)
 			end
 		end
 	end
-	
+
 	self.CurrentStock = math.clamp(self.CurrentStock + amount, 0, self.MaxStock)
 
 	if self.Instances.StockLabel then
@@ -129,7 +117,9 @@ end
 
 function CrateClass:UpdateVisualState()
 	local stockLabel = self.Instances.StockLabel
-	if not stockLabel then return end
+	if not stockLabel then
+		return
+	end
 
 	if self.CurrentStock <= 0 then
 		stockLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -146,16 +136,19 @@ function CrateClass:Init()
 
 	if clickDetector then
 		clickDetector.MouseClick:Connect(function(player)
+			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then
+				return
+			end
 
-			if #API.getOwnedParts(player) >= Settings.MaxItemsPerPlayer then return end
-			if self.CurrentStock <= 0 then return end
+			if self.CurrentStock <= 0 then
+				return
+			end
 
-			local v: BasePart = getIngredient(self.Part.Name):Clone()
+			local v: BasePart = API.getItem(Config.Folder, self.Part.Name):Clone()
 			self:AddStock(-1)
 			v.Parent = workspace.Items
 			local ingredient = IngredientClass.new(v)
 			ingredient:SetOwner(player)
-
 		end)
 
 		clickDetector.MouseHoverEnter:Connect(function()
@@ -171,7 +164,7 @@ function CrateClass:Init()
 			if highlight then
 				highlight.Enabled = false
 			end
-			
+
 			if billboard then
 				billboard.Enabled = false
 			end
@@ -180,20 +173,34 @@ function CrateClass:Init()
 
 	if restockPrompt then
 		restockPrompt.Triggered:Connect(function(player: Player)
-			if not self:NeedsRestock() then return end
+			if not self:NeedsRestock() then
+				return
+			end
 
 			local guid = player:GetAttribute("CarryingItem")
-			if not guid then return end
+			if not guid then
+				return
+			end
 
 			local item = API.findItemByGuid(guid)
-			if not item then return end
-			if not CollectionService:HasTag(item, "RestockPackage") then return end
+			if not item then
+				return
+			end
+			if not CollectionService:HasTag(item, "RestockPackage") then
+				return
+			end
 
 			local character = player.Character
-			if not character then return end
+			if not character then
+				return
+			end
 			local root = character:FindFirstChild("HumanoidRootPart") :: BasePart
-			if not root then return end
-			if (root.Position - self.Part.Position).Magnitude > Config.RestockMaxDistance + 2 then return end
+			if not root then
+				return
+			end
+			if (root.Position - self.Part.Position).Magnitude > Config.RestockMaxDistance + 2 then
+				return
+			end
 
 			self:AddStock(self.MaxStock)
 

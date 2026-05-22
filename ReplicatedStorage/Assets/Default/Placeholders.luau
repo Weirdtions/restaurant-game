@@ -1,27 +1,47 @@
 -- Weirdtions
 
 local GlobalConfig = {
-	["Text"] = Font.new(
-		"rbxasset://fonts/families/Arimo.json", 
-		Enum.FontWeight.Bold, 
-		Enum.FontStyle.Normal
-	),
+	["Text"] = Font.new("rbxasset://fonts/families/Arimo.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
 	["Image"] = {
-		["Default"] = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-	}
+		["Default"] = "rbxasset://textures/ui/GuiImagePlaceholder.png",
+	},
 }
 
 local Placeholder = {}
 
-function Placeholder.BillboardGui(name: string, parent: Instance, alwaysOnTop: boolean, size: UDim2, studsOffset: Vector3, children: {})
+function Placeholder.ScreenGui(name: string, parent: Instance, children: {})
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = name
+	screenGui.Parent = parent
+	screenGui.IgnoreGuiInset = true
+
+	if children then
+		for _, child in children do
+			child.Parent = screenGui
+		end
+	end
+
+	return screenGui
+end
+
+function Placeholder.BillboardGui(
+	name: string,
+	parent: Instance,
+	alwaysOnTop: boolean,
+	size: UDim2,
+	studsOffset: Vector3,
+	children: {}
+)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = name
-	if parent then billboard.Parent = parent end
+	if parent then
+		billboard.Parent = parent
+	end
 	billboard.Adornee = parent
 	billboard.AlwaysOnTop = alwaysOnTop
 	billboard.Size = size
 	billboard.StudsOffset = studsOffset
-	
+
 	if children then
 		for _, child in children do
 			child.Parent = billboard
@@ -31,7 +51,15 @@ function Placeholder.BillboardGui(name: string, parent: Instance, alwaysOnTop: b
 	return billboard
 end
 
-function Placeholder.Frame(name: string, visible: boolean, size: UDim2, position: UDim2, backgroundColor: Color3, zIndex: number, children: {})
+function Placeholder.Frame(
+	name: string,
+	visible: boolean,
+	size: UDim2,
+	position: UDim2,
+	backgroundColor: Color3,
+	zIndex: number,
+	children: {}
+)
 	local frame = Instance.new("Frame")
 	frame.Name = name
 	frame.Visible = visible
@@ -49,11 +77,21 @@ function Placeholder.Frame(name: string, visible: boolean, size: UDim2, position
 	return frame
 end
 
-function Placeholder.TextLabel(name: string, visible: boolean, size: UDim2, position: UDim2, zIndex: number, color: Color3, alignmentX: Enum.TextXAlignment, alignmentY: Enum.TextYAlignment, children: {})
+function Placeholder.TextLabel(
+	name: string,
+	visible: boolean,
+	size: UDim2,
+	position: UDim2,
+	zIndex: number,
+	color: Color3,
+	alignmentX: Enum.TextXAlignment,
+	alignmentY: Enum.TextYAlignment,
+	children: {}
+)
 	local label = Instance.new("TextLabel")
 	label.Name = name
 	label.Visible = visible
-	label.Size = size
+	label.Size = size or UDim2.new(1, 0, 1, 0)
 	label.Position = position or UDim2.new(0, 0, 0, 0)
 	label.ZIndex = zIndex
 	label.TextColor3 = color
@@ -72,7 +110,15 @@ function Placeholder.TextLabel(name: string, visible: boolean, size: UDim2, posi
 	return label
 end
 
-function Placeholder.ImageLabel(name: string, visible: boolean, size: UDim2, position: UDim2, zIndex: number, image: string, children: {})
+function Placeholder.ImageLabel(
+	name: string,
+	visible: boolean,
+	size: UDim2,
+	position: UDim2,
+	zIndex: number,
+	image: string,
+	children: {}
+)
 	local label = Instance.new("ImageLabel")
 	label.Name = name
 	label.Visible = visible
@@ -106,13 +152,20 @@ function Placeholder.UICorner(radius: UDim)
 	return ui
 end
 
-function Placeholder.UIListLayout(padding: UDim, fillDirection: Enum.FillDirection, sortOrder: Enum.SortOrder, horizontalAlignment: Enum.HorizontalAlignment, verticalAlignment: Enum.VerticalAlignment)
+function Placeholder.UIListLayout(
+	padding: UDim,
+	fillDirection: Enum.FillDirection,
+	sortOrder: Enum.SortOrder,
+	horizontalAlignment: Enum.HorizontalAlignment,
+	verticalAlignment: Enum.VerticalAlignment
+)
 	local ui = Instance.new("UIListLayout")
 	ui.Padding = padding
 	ui.FillDirection = fillDirection
 	ui.SortOrder = sortOrder
 	ui.HorizontalAlignment = horizontalAlignment
 	ui.VerticalAlignment = verticalAlignment
+	ui.Wraps = true
 
 	return ui
 end
@@ -144,7 +197,17 @@ function Placeholder.UIGradient(colorStart: Color3, colorEnd: Color3, rotation: 
 	return ui
 end
 
-function Placeholder.TextButton(name: string, visible: boolean, size: UDim2, position: UDim2, zIndex: number, text: string, textColor: Color3, backgroundColor: Color3, children: {})
+function Placeholder.TextButton(
+	name: string,
+	visible: boolean,
+	size: UDim2,
+	position: UDim2,
+	zIndex: number,
+	text: string,
+	textColor: Color3,
+	backgroundColor: Color3,
+	children: {}
+)
 	local button = Instance.new("TextButton")
 	button.Name = name
 	button.Visible = visible
@@ -167,7 +230,16 @@ function Placeholder.TextButton(name: string, visible: boolean, size: UDim2, pos
 	return button
 end
 
-function Placeholder.ScrollingFrame(name: string, visible: boolean, size: UDim2, position: UDim2, backgroundColor: Color3, canvasSize: UDim2, scrollDirection: Enum.ScrollingDirection, children: {})
+function Placeholder.ScrollingFrame(
+	name: string,
+	visible: boolean,
+	size: UDim2,
+	position: UDim2,
+	backgroundColor: Color3,
+	canvasSize: UDim2,
+	scrollDirection: Enum.ScrollingDirection,
+	children: {}
+)
 	local frame = Instance.new("ScrollingFrame")
 	frame.Name = name
 	frame.Visible = visible
