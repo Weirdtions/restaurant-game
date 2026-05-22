@@ -4,6 +4,7 @@ local IngredientClass = require(ServerStorage.Classes.IngredientClass)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UI = require(ReplicatedStorage.Assets.Default.UI)
 local API = require(ServerStorage.API)
+local GamepassService = require(ServerStorage.Services.GamepassService)
 local Settings = API:GetSettings()
 local Config = {
 	["MaxStock"] = 10, -- max stock of the crate
@@ -140,12 +141,14 @@ function CrateClass:Init()
 				return
 			end
 
-			if self.CurrentStock <= 0 then
+			local hasInfiniteRestock = GamepassService.HasGamepass(player, "InfiniteRestock")
+
+			if not hasInfiniteRestock and self.CurrentStock <= 0 then
 				return
 			end
 
 			local v: BasePart = API.getItem(Config.Folder, self.Part.Name):Clone()
-			self:AddStock(-1)
+				self:AddStock(-1)
 			v.Parent = workspace.Items
 			local ingredient = IngredientClass.new(v)
 			ingredient:SetOwner(player)

@@ -10,6 +10,7 @@ local mouse = player:GetMouse()
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local DropItem = Remotes:WaitForChild("DropItem") :: RemoteEvent
 local UseItem = Remotes:WaitForChild("UseItem") :: RemoteEvent
+local PlaceCup = Remotes:WaitForChild("PlaceCup") :: RemoteEvent
 local InteractionConfig = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("InteractionConfig"))
 
 local MAX_DISTANCE = 15
@@ -22,6 +23,15 @@ local renderConn: RBXScriptConnection = nil
 local isFixedMode: boolean = false
 local InstructionGui = nil
 
+local isPlacingMode: boolean = false
+local ghostPart: BasePart? = nil
+local ghostHighlight: Highlight? = nil
+local ghostRenderConn: RBXScriptConnection? = nil
+local ghostValidPosition: Vector3? = nil
+local GHOST_MAX_DISTANCE = 20
+local GHOST_VALID_COLOR = Color3.fromRGB(80, 255, 80)
+local GHOST_INVALID_COLOR = Color3.fromRGB(255, 80, 80)
+
 local function findItemByGuid(guid: string): BasePart?
 	for _, item in ipairs(ITEMS_FOLDER:GetChildren()) do
 		if item:IsA("BasePart") and item:GetAttribute("Guid") == guid then
@@ -29,6 +39,115 @@ local function findItemByGuid(guid: string): BasePart?
 		end
 	end
 	return nil
+end
+
+local function destroyGhost()
+	if ghostRenderConn then
+		ghostRenderConn:Disconnect()
+		ghostRenderConn = nil
+	end
+	if ghostPart then
+		ghostPart:Destroy()
+		ghostPart = nil
+	end
+	ghostHighlight = nil
+	ghostValidPosition = nil
+	isPlacingMode = false
+end
+
+local function createGhost(sourceTool: Tool)
+	local handle = sourceTool:FindFirstChild("Handle") :: BasePart
+	if not handle then return end
+
+	local ghost = handle:Clone()
+	ghost.Name = "GhostCup"
+	ghost.Anchored = true
+	ghost.CanCollide = false
+	ghost.CanQuery = false
+	ghost.CanTouch = false
+	ghost.Transparency = 0.5
+
+	for _, child in ghost:GetChildren() do
+		if child:IsA("AlignPosition") or child:IsA("AlignOrientation") 
+			or child:IsA("ClickDetector") or child:IsA("BillboardGui")
+			or child:IsA("Attachment") or child:IsA("Script") 
+			or child:IsA("LocalScript") then
+			child:Destroy()
+		end
+	end
+
+	for _, child in ghost:GetChildren() do
+		if child:IsA("Highlight") then
+			child:Destroy()
+		end
+	end
+
+	local highlight = Instance.new("Highlight")
+	highlight.Adornee = ghost
+	highlight.FillTransparency = 0.3
+	highlight.FillColor = GHOST_VALID_COLOR
+	highlight.OutlineTransparency = 0.5
+	highlight.OutlineColor = GHOST_VALID_COLOR
+	highlight.Enabled = true
+	highlight.Parent = ghost
+
+	ghost.Parent = workspace
+	ghostPart = ghost
+	ghostHighlight = highlight
+	isPlacingMode = true
+end
+
+local function onGhostRenderStep()
+	if not ghostPart or not isPlacingMode then return end
+
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart
+	if not root then return end
+
+	local camera = workspace.CurrentCamera
+	local mouseLocation = UserInputService:GetMouseLocation()
+	local ray = camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
+
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+	rayParams.FilterDescendantsInstances = {
+		ghostPart,
+		character,
+		workspace:FindFirstChild("Items"),
+		workspace:FindFirstChild("Characters"),
+	}
+
+	local rayResult = workspace:Raycast(ray.Origin, ray.Direction * 100, rayParams)
+
+	if rayResult then
+		local hitPos = rayResult.Position
+		local distFromPlayer = (hitPos - root.Position).Magnitude
+
+		local cupHeight = ghostPart.Size.Y
+		local placementPos = hitPos + Vector3.new(0, cupHeight / 2, 0)
+
+		ghostPart.CFrame = CFrame.new(placementPos)
+
+		if distFromPlayer <= GHOST_MAX_DISTANCE then
+			ghostValidPosition = placementPos
+			if ghostHighlight then
+				ghostHighlight.FillColor = GHOST_VALID_COLOR
+				ghostHighlight.OutlineColor = GHOST_VALID_COLOR
+			end
+		else
+			ghostValidPosition = nil
+			if ghostHighlight then
+				ghostHighlight.FillColor = GHOST_INVALID_COLOR
+				ghostHighlight.OutlineColor = GHOST_INVALID_COLOR
+			end
+		end
+	else
+		ghostValidPosition = nil
+		if ghostHighlight then
+			ghostHighlight.FillColor = GHOST_INVALID_COLOR
+			ghostHighlight.OutlineColor = GHOST_INVALID_COLOR
+		end
+	end
 end
 
 local function onRenderStep(dt: number)
@@ -139,56 +258,94 @@ end)
 
 local isUsing = false
 UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
-	if gameProcessed or not currentItem then
+	if gameProcessed then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.Escape and isPlacingMode then
+		destroyGhost()
+		return
+	end
+
+	if not currentItem then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.Q then
+		if isPlacingMode then
+			destroyGhost()
+			return
+		end
+
+		if currentItem:IsA("Tool") then
+			local handle = currentItem:FindFirstChild("Handle")
+			if handle and CollectionService:HasTag(handle, "Cup") then
+				createGhost(currentItem)
+				ghostRenderConn = RunService.RenderStepped:Connect(onGhostRenderStep)
+			end
+		end
 		return
 	end
 
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		local targetStation = nil
-		local mouseTarget = mouse.Target
+		if isPlacingMode and ghostValidPosition and currentItem and currentItem:IsA("Tool") then
+			local toolRef = currentItem
+			local pos = ghostValidPosition
+			destroyGhost()
+			PlaceCup:FireServer(pos, toolRef)
+			return
+		end
 
-		if mouseTarget then
-			local curr = mouseTarget
-			while curr and curr ~= workspace do
-				for stationTag, config in pairs(InteractionConfig.Stations) do
-					if CollectionService:HasTag(curr, stationTag) then
-						local isValid = false
+		if not isPlacingMode then
+			local targetStation = nil
+			local mouseTarget = mouse.Target
 
-						if config.AcceptedItems then
-							for _, itemName in ipairs(config.AcceptedItems) do
-								if itemName == currentItem.Name then
-									isValid = true
-									break
+			if mouseTarget then
+				local curr = mouseTarget
+				while curr and curr ~= workspace do
+					for stationTag, config in pairs(InteractionConfig.Stations) do
+						if CollectionService:HasTag(curr, stationTag) then
+							local isValid = false
+
+							if config.AcceptedItems then
+								for _, itemName in ipairs(config.AcceptedItems) do
+									if itemName == currentItem.Name then
+										isValid = true
+										break
+									end
 								end
 							end
-						end
-						if config.AcceptedTags then
-							for _, tag in ipairs(config.AcceptedTags) do
-								if CollectionService:HasTag(currentItem, tag) then
-									isValid = true
-									break
+							if config.AcceptedTags then
+								for _, tag in ipairs(config.AcceptedTags) do
+									if CollectionService:HasTag(currentItem, tag) then
+										isValid = true
+										break
+									end
 								end
 							end
-						end
 
-						if isValid then
-							targetStation = curr
-							break
+							if isValid then
+								targetStation = curr
+								break
+							end
 						end
 					end
-				end
 
-				if targetStation then
-					break
+					if targetStation then
+						break
+					end
+					curr = curr.Parent
 				end
-				curr = curr.Parent
+			end
+
+			if targetStation then
+				DropItem:FireServer(currentItem, targetStation)
 			end
 		end
-
-		if targetStation then
-			DropItem:FireServer(currentItem, targetStation)
-		end
 	elseif input.KeyCode == Enum.KeyCode.E then
+		if isPlacingMode then
+			return
+		end
 		if not CollectionService:HasTag(currentItem, "Usable") then
 			return
 		end
@@ -196,5 +353,11 @@ UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: 
 		isFixedMode = not isFixedMode
 		UseItem:FireServer(currentItem, isUsing)
 		isUsing = not isUsing
+	end
+end)
+
+character.ChildRemoved:Connect(function(instance)
+	if isPlacingMode and currentItem == instance then
+		destroyGhost()
 	end
 end)
